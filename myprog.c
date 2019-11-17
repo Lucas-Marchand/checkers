@@ -571,7 +571,7 @@ void PerformMove(char board[8][8], char move[12], int mlen)
 }
 
 
-int main(int argc, char *argv[]){
+int tain(int argc, char *argv[]){
     ResetBoard();
     me = 2;
 
@@ -607,7 +607,7 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
-int fain(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     char buf[1028],move[12];
     int len,mlen,player1;
