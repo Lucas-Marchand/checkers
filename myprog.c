@@ -302,8 +302,8 @@ double evalBoard(char currBoard[8][8])
     {   
          if(king(currBoard[y][x]))
          {   
-             if(currBoard[y][x] & White) whitesum += 2;
-             else redsum += 2;
+             if(currBoard[y][x] & White) whitesum += 3;
+             else redsum += 3;
          }
          else if(piece(currBoard[y][x]))
          {   
@@ -324,10 +324,6 @@ double evalBoard(char currBoard[8][8])
 }
 
 double MinVal(struct State *state,double alpha, double beta, int depthLimit){
-    if(LowOnTime()){
-        depthLimit = 0;
-    }
-
     // cutoff test
     if(depthLimit<=0)return evalBoard(state->board);
 
@@ -384,10 +380,6 @@ double MinVal(struct State *state,double alpha, double beta, int depthLimit){
 }
 
 double MaxVal(struct State *state,double alpha, double beta, int depthLimit){
-    if(LowOnTime()){
-        depthLimit = 0;
-    }
-
     // cutoff test
     if(depthLimit<=0)return evalBoard(state->board);
 
