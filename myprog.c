@@ -298,12 +298,10 @@ double evalBoard(char currBoard[8][8])
     int y,x;
     int whitesum = 0;
     int redsum = 0;
-
     for(y=0; y<8; y++) for(x=0; x<8; x++) if(x%2 != y%2)
     {   
          if(king(currBoard[y][x]))
          {   
-             //if(color(currBoard->board[y][x]) == White) score += 2.0;
              if(currBoard[y][x] & White) whitesum += 2;
              else redsum += 2;
          }
@@ -311,34 +309,34 @@ double evalBoard(char currBoard[8][8])
          {   
              if(currBoard[y][x] & White) 
              {
-                 //fprintf(stderr, "i found a white piece at: %d, %d \n", x,y);
                  whitesum += 1;
              }
              else{
-                 //fprintf(stderr, "i found a red piece at: %d, %d \n", x,y);
                  redsum += 1;
              } 
          }
     }
     if(me == 1){
-        fprintf(stderr, "player 1 score is: %d \n", redsum-whitesum);
         return redsum-whitesum;
     }else{
-        fprintf(stderr, "player 2 score is: %d \n", whitesum-redsum);
         return whitesum-redsum;
     }
 }
 
 double MinVal(struct State *state,double alpha, double beta, int depthLimit){
-    depthLimit--;
-    fprintf(stderr, "in Min \n");
-    fprintf(stderr, "DepthLimit is %d \n", depthLimit);
+    if(LowOnTime()){
+        depthLimit = 0;
+    }
+
     // cutoff test
     if(depthLimit<=0)return evalBoard(state->board);
+
+    depthLimit--;
 
     /* Find the legal moves for the current state */
     FindLegalMoves(state);
 
+    double v = 100000000000000;
     int x;
     for(x=0; x<state->numLegalMoves; x++)
     {
@@ -360,9 +358,15 @@ double MinVal(struct State *state,double alpha, double beta, int depthLimit){
 
         // check if we are better now
         double rVal = MaxVal(&foobar, alpha, beta, depthLimit);
+        // fprintf(stderr, "MaxVal gave back: %d \n", rVal);
 
-        if(rVal < beta){
-            beta = rVal;
+        // keep only minimum max value
+        if(v > rVal){
+            v = rVal;
+        }
+
+        if(v <= alpha) {
+            return v;
         }
 
         // may want to think about pruning here. we may need to take into consideration that two board evaluations
@@ -370,33 +374,37 @@ double MinVal(struct State *state,double alpha, double beta, int depthLimit){
         // if we see equal moves then we can decide to choose randomly equal moves. 
         // THIS IS WHERE WE DECIDE WHERE TO PRUNE!
         // we may not want it to do the same thing every time.
-        if(alpha >= beta){
-            fprintf(stderr, "Min beta with value: %d \n", beta);
-            return beta;
+        if(beta > v){
+            // fprintf(stderr, "Min beta with value: %d \n", beta);
+            beta = v;
         }
     }
-    fprintf(stderr, "Min alpha with value: %d \n", alpha);
-    return alpha;
+    // fprintf(stderr, "Min with value: %d \n", v);
+    return v;
 }
 
-double MaxVal(struct State* state,double alpha, double beta, int depthLimit){
-    depthLimit--;
-    fprintf(stderr, "in Max \n");
-    /* Find the legal moves for the current state */
-    FindLegalMoves(state);
+double MaxVal(struct State *state,double alpha, double beta, int depthLimit){
+    if(LowOnTime()){
+        depthLimit = 0;
+    }
 
     // cutoff test
     if(depthLimit<=0)return evalBoard(state->board);
 
-    int x;
-    for(x=0; x<state->numLegalMoves; x++)
-    {
+    depthLimit--;
+    
+    /* Find the legal moves for the current state */
+    FindLegalMoves(state);
 
+    int x;
+    double v = -100000000000000;
+    for(x=0; x<state->numLegalMoves; x++)
+    {  
         // for every successor state set it up
         struct State foobar;
         memcpy(&foobar, state,sizeof(struct State));
 
-        // switch the player
+        // change player
         if(state->player == 1){
             foobar.player = 2;
         }else{
@@ -408,8 +416,14 @@ double MaxVal(struct State* state,double alpha, double beta, int depthLimit){
 
         // check if we are better now
         double rVal = MinVal(&foobar, alpha, beta, depthLimit);
-        if(rVal > alpha){
-            alpha = rVal;
+        
+        // keep only minimum max value
+        if(v < rVal){
+            v = rVal;
+        }
+
+        if(v >= beta) {
+            return v;
         }
 
         // may want to think about pruning here. we may need to take into consideration that two board evaluations
@@ -417,21 +431,18 @@ double MaxVal(struct State* state,double alpha, double beta, int depthLimit){
         // if we see equal moves then we can decide to choose randomly equal moves. 
         // THIS IS WHERE WE DECIDE WHERE TO PRUNE!
         // we may not want it to do the same thing every time.
-        if(beta <= alpha){
-         printf(stderr, "Max alpha with value: %d \n", alpha);   
-         return alpha;
+        if(alpha < v){
+            alpha = v;
         }
     }
-    fprintf(stderr, "Max beta with value: %d \n", beta);
-    return beta;
+    return v;
 }
 
 /* Employ your favorite search to find the best move here.  */
 /* This example code shows you how to call the FindLegalMoves function */
 /* and the PerformMove function */
 void FindBestMove(int player)
-{
-    fprintf(stderr, "FindBestMove \n");
+{   
     int i; 
     struct State state; 
 
@@ -443,10 +454,10 @@ void FindBestMove(int player)
     /* Find the legal moves for the current state */
     FindLegalMoves(&state);
 
-    double alpha = -100000;
+    double alpha = -100000000000000;
     double beta = -alpha;
 
-    double bestScore= -1000000;
+    double bestScore= -100000000000000;
 
     int x;
     for(x=0; x<state.numLegalMoves; x++)
@@ -461,17 +472,16 @@ void FindBestMove(int player)
         }
 
         // // apply the xth legal move to the board stored in state
-        // PerformMove(foobar.board,foobar.movelist[x], MoveLength(foobar.movelist));
+        PerformMove(foobar.board,foobar.movelist[x], MoveLength(foobar.movelist));
 
         // check if we are better now
-        fprintf(stderr, "do the MinVal thingy \n");
-        double val = MinVal(&foobar, alpha, beta, 1);
+        double val;
+        val = MinVal(&foobar, alpha, beta, 8);
         if(bestScore <= val){
-        bestScore = val;
-        i = x;
+            bestScore = val;
+            i = x;
         }
     }
-
     memcpy(bestmove,state.movelist[i],MoveLength(state.movelist[i]));
 }
 
@@ -571,9 +581,9 @@ void PerformMove(char board[8][8], char move[12], int mlen)
 }
 
 
-int main(int argc, char *argv[]){
+int tain(int argc, char *argv[]){
     ResetBoard();
-    me = 2;
+    me = 1;
 
     struct State state; 
 
@@ -584,30 +594,14 @@ int main(int argc, char *argv[]){
 
     /* Find the legal moves for the current state */
     FindLegalMoves(&state);
-
-    // apply the xth legal move to the board stored in state
-    PerformMove(state.board,state.movelist[0], MoveLength(state.movelist));
-
-    state.player = 2;
-    memset(bestmove,0,12*sizeof(char));
-
-    /* Find the legal moves for the current state */
-    FindLegalMoves(&state);
-
-    // apply the xth legal move to the board stored in state
-    PerformMove(state.board,state.movelist[1], MoveLength(state.movelist));
-
-    PrintBoard(state.board);
-
-    state.player = 1;
-    memset(bestmove,0,12*sizeof(char));
-
     FindBestMove(1);
 
+    int mlen = MoveLength(bestmove);
+    PerformMove(board,bestmove,mlen);
     return 0;
 }
 
-int fain(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     char buf[1028],move[12];
     int len,mlen,player1;
@@ -673,5 +667,3 @@ determine_next_move:
 
     return 0;
 }
-
-
